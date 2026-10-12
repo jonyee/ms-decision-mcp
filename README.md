@@ -8,7 +8,21 @@ Use it for routing, classification, verification against supplied evidence, prio
 
 Requires Node.js 22+ and a Microsoft-Decision-1 deployment. If you are starting without Azure resources, follow [Deploy Microsoft-Decision-1 from scratch](#deploy-microsoft-decision-1-from-scratch) first.
 
-The quick setup below uses your **normal Azure CLI profile**. To keep that profile unchanged, run the build commands and set the endpoint/deployment variables below, but **replace the bare `az login` and `npm start` commands** with the login and launch commands in [Dedicated Azure CLI login](#dedicated-azure-cli-login).
+Run the npm package without cloning or building the repository:
+
+```sh
+export AZURE_DECISION_ENDPOINT=https://your-resource.services.ai.azure.com
+export AZURE_DECISION_DEPLOYMENT=your-deployment-name
+export AZURE_DECISION_AUTH=azure-cli
+az login
+npx --yes ms-decision-mcp@0.1.0
+```
+
+Use `npx --yes ms-decision-mcp@0.1.0 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading.
+
+For a source checkout, install dependencies and build before launching:
+
+The source setup below uses your **normal Azure CLI profile**. To keep that profile unchanged, run the build commands and set the endpoint/deployment variables below, but **replace the bare `az login` and `npm start` commands** with the login and launch commands in [Dedicated Azure CLI login](#dedicated-azure-cli-login). The same profile isolation works with `npx`: prefix it with `AZURE_CONFIG_DIR="$HOME/.azure-ms-decision"`.
 
 ```sh
 npm install
@@ -173,7 +187,27 @@ Keep API keys and client secrets in your environment or secret manager, never in
 
 ### MCP client configuration
 
-Build first and substitute your absolute repository path:
+To use the npm package, configure the client to launch `npx`:
+
+```json
+{
+  "mcpServers": {
+    "decision": {
+      "command": "npx",
+      "args": ["--yes", "ms-decision-mcp@0.1.0"],
+      "env": {
+        "AZURE_DECISION_ENDPOINT": "https://your-resource.services.ai.azure.com",
+        "AZURE_DECISION_DEPLOYMENT": "your-deployment-name",
+        "AZURE_DECISION_AUTH": "azure-cli"
+      }
+    }
+  }
+}
+```
+
+For a dedicated Azure CLI profile, add `AZURE_CONFIG_DIR` with its absolute path to `env`. The client needs `npx` and, for `azure-cli` authentication, `az` on its `PATH`.
+
+Alternatively, build a source checkout first and substitute your absolute repository path:
 
 ```json
 {
@@ -282,6 +316,43 @@ npm run test:live # opt-in: one billed call using configured Azure deployment
 ```
 
 The Azure route and all three question/answer types were verified against an existing Microsoft-Decision-1 v1 deployment using Entra authentication. Latency varies; the wrapper makes no fixed speed guarantee.
+
+## Publishing
+
+Maintainers publish the public `ms-decision-mcp` package to the npm registry. The package includes compiled `dist/` files, this README, the MIT license, and the nonsecret `.env.example`; source, tests, and local configuration are excluded. `prepack` builds the executable automatically for both `npm pack` and `npm publish`.
+
+From a release worktree with the intended version in `package.json` and `package-lock.json`:
+
+```sh
+npm ci
+npm run check
+npm test
+npm pack --dry-run
+
+npm login --registry=https://registry.npmjs.org/
+npm whoami --registry=https://registry.npmjs.org/
+npm publish --access public --registry=https://registry.npmjs.org/
+npm view ms-decision-mcp version --registry=https://registry.npmjs.org/
+npx --yes ms-decision-mcp@0.1.0 --help
+```
+
+Review the dry-run file list before publishing and confirm `npm whoami` identifies the intended maintainer account. If your default npm configuration belongs to another account, use a separate `--userconfig` file consistently for login, identity checks, and publication; do not reuse that account's tokens. Direct publication requires account two-factor authentication or a granular access token with bypass 2FA enabled; never commit npm tokens. See [npm's public-package publishing guide](https://docs.npmjs.com/creating-and-publishing-unscoped-public-packages/).
+
+Alternatively, use [staged publishing](https://docs.npmjs.com/staged-publishing/) with npm 11.15+ and Node.js 22.14+. This submits the package for validation and explicit 2FA approval instead of publishing it immediately:
+
+```sh
+npm pack
+npm stage publish ./ms-decision-mcp-0.1.0.tgz --access public \
+  --registry=https://registry.npmjs.org/
+npm stage list ms-decision-mcp --registry=https://registry.npmjs.org/
+npm stage view <stage-id> --registry=https://registry.npmjs.org/
+# After the status becomes staged:
+npm stage approve <stage-id> --registry=https://registry.npmjs.org/
+```
+
+Replace `<stage-id>` with the ID returned by staging. You can also approve the version from the package page's **Staged Packages** tab on npmjs.com, completing the browser's 2FA prompt. Staging a new package publishes a public `0.0.0-stage` placeholder; the submitted version remains unavailable until approved. After approval, verify the released version and run the pinned `npx` help command above.
+
+For later releases, use `npm version patch --no-git-tag-version` (or the intended minor/major bump) before validation to update both version files, update the pinned installation examples, and commit the release changes. An npm name/version pair cannot be republished. Replace `0.1.0` in the final verification command with the version being released. Future CI publication can use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) after configuring the package's trusted publisher.
 
 ## API source
 
