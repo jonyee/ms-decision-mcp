@@ -1,6 +1,6 @@
 import { DecisionClient, loadConfig } from '../src/client.js';
 
-// Explicitly opt in with npm run test:live. Makes one billed inference request.
+// Explicitly opt in with npm run test:live. Makes one inference request.
 const client = new DecisionClient(loadConfig());
 const start = performance.now();
 const result = await client.decide({
