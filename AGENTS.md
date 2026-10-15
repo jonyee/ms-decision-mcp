@@ -10,4 +10,4 @@ Prefer a compiler, test, linter, or deterministic rule for checks those tools ca
 
 ## Validation
 
-Run `npm run check`, `npm test`, and `npm run build` after changes. `npm run test:live` is an opt-in billed Azure inference test, not part of routine offline validation.
+Run `npm run check`, `npm test`, and `npm run build` after changes. `npm run test:live` is an opt-in Azure inference test, not part of routine offline validation.

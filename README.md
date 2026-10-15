@@ -41,13 +41,13 @@ The endpoint must be the **resource base URL**, not a Foundry project endpoint. 
 
 This walkthrough uses the Foundry portal to create the resource and project, then deploys the model. You do not need Python or an Azure SDK to use this MCP server.
 
-1. **Prepare your account and local tools.** You need an Azure subscription with a valid payment method, access to [Microsoft Foundry](https://ai.azure.com), [Node.js 22+](https://nodejs.org/), and the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli). Creating resources requires permission on the subscription or resource group; model deployment requires a role such as **Cognitive Services Contributor**. Assigning roles requires separate role-assignment permission, such as **Owner** or **Role Based Access Control Administrator**. Ask your Azure administrator if these permissions are missing. Inference is billed; review the deployment's pricing and quota before proceeding.
+1. **Prepare your account and local tools.** You need an Azure subscription, access to [Microsoft Foundry](https://ai.azure.com), [Node.js 22+](https://nodejs.org/), and the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli). Creating resources requires permission on the subscription or resource group; model deployment requires a role such as **Cognitive Services Contributor**. Assigning roles requires separate role-assignment permission, such as **Owner** or **Role Based Access Control Administrator**. Ask your Azure administrator if these permissions are missing. Review the deployment's quota before proceeding.
 2. **Create a Foundry resource and project.** Sign in to the Foundry portal with the intended account and directory. In the new Foundry experience, choose **Create new project** (from the project selector if a project is already open). Use the advanced options to select the intended subscription, create a dedicated resource group, and choose a location. The portal creates the parent Foundry resource along with the project. See Microsoft's [project creation guide](https://learn.microsoft.com/en-us/azure/foundry/how-to/create-projects) for the current UI and permission requirements.
 3. **Deploy the model.** Open the project's **Model catalog**, search for **Microsoft-Decision-1**, and choose **Deploy**. Give the deployment a name, for example `decision-1`, and select a supported deployment type and capacity. Microsoft's current guide documents model version `1`, `GlobalStandard`, and `DataZoneStandard` in selected regions. Availability and quota vary by subscription and region; if deployment is unavailable, check these before creating another resource. `GlobalStandard` can process inference globally; use an available `DataZoneStandard` deployment when data-zone locality is required. Wait for deployment to succeed.
 4. **Record the resource settings.** On the deployment details page, copy the **resource endpoint** and **deployment name**. Also record the parent Foundry resource's name and resource group from its Azure portal overview. The endpoint must be a base URL such as `https://your-resource.services.ai.azure.com`, **not** the project URL ending in `/api/projects/...`, an OpenAI URL ending in `/openai/...`, or the full decision API URL. The deployment name is the name you chose (`decision-1` in this example), not necessarily `Microsoft-Decision-1`.
 5. **Grant inference access to the runtime identity.** Open the **parent Foundry resource** in the Azure portal, then **Access control (IAM)** → **Add role assignment**. Assign **Cognitive Services User** to the user or service principal that will run the MCP server. Deployment-management permission alone is not a substitute for inference permission. If you use a dedicated CLI login, assign the role to that login's identity, which may differ from the account that created the deployment. Allow time for the assignment to propagate. For API-key authentication, use the resource key instead (see below).
 6. **Sign in locally and configure the server.** Use `az login --tenant <tenant-id>` and `az account set --subscription <subscription-id>`, or follow the dedicated-login section below. A portal browser login and a local CLI login are separate sessions. Set the variables described in [Find and supply the configuration values](#find-and-supply-the-configuration-values), then run `npm install` and `npm run build` from this repository.
-7. **Optionally verify inference, then connect your MCP client.** `npm run test:live` makes **one billed inference request** against the configured deployment and prints the result. Run it only when you intend to incur that charge. Then use the [MCP client configuration](#mcp-client-configuration) below. `npm start` launches a stdio MCP server; it is not an interactive chat or an HTTP server.
+7. **Optionally verify inference, then connect your MCP client.** `npm run test:live` makes **one inference request** against the configured deployment and prints the result. Then use the [MCP client configuration](#mcp-client-configuration) below. `npm start` launches a stdio MCP server; it is not an interactive chat or an HTTP server.
 
 If the resource and project already exist, you can replace the catalog deployment step with Microsoft's CLI command. Set these shell variables to your **parent resource** name and resource group, then choose a deployment name:
 
@@ -67,7 +67,7 @@ az cognitiveservices account deployment create \
   --sku-capacity 1
 ```
 
-This command creates a billed model deployment, not the resource or project. For the authoritative deployment instructions and regional availability links, see [Microsoft's Microsoft-Decision-1 guide](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-microsoft-decision).
+This command creates a model deployment, not the resource or project. For the authoritative deployment instructions and regional availability links, see [Microsoft's Microsoft-Decision-1 guide](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-microsoft-decision).
 
 ### Find and supply the configuration values
 
@@ -128,7 +128,7 @@ AZURE_CONFIG_DIR="$HOME/.azure-ms-decision" \
   AZURE_DECISION_AUTH=azure-cli npm start
 ```
 
-The endpoint and deployment variables must also be set. The profile above is selected **per command**, not exported for the whole shell: a later bare `az` command or `npm start` still uses your normal profile. Prefix deployment, lookup, and live-test commands with the same `AZURE_CONFIG_DIR` when they should use the dedicated identity (for example, `AZURE_CONFIG_DIR="$HOME/.azure-ms-decision" AZURE_DECISION_AUTH=azure-cli npm run test:live`; this makes one billed inference request). For an MCP client, use this complete configuration with your actual paths and values:
+The endpoint and deployment variables must also be set. The profile above is selected **per command**, not exported for the whole shell: a later bare `az` command or `npm start` still uses your normal profile. Prefix deployment, lookup, and live-test commands with the same `AZURE_CONFIG_DIR` when they should use the dedicated identity (for example, `AZURE_CONFIG_DIR="$HOME/.azure-ms-decision" AZURE_DECISION_AUTH=azure-cli npm run test:live`; this makes one inference request). For an MCP client, use this complete configuration with your actual paths and values:
 
 ```json
 {
@@ -304,7 +304,7 @@ Results include `model`, named `answers`, and `usage.input_tokens` / `usage.outp
 
 ## Failure behavior
 
-Timeouts, cancellation, authentication/network errors, non-2xx responses, and invalid responses become MCP tool errors (`isError: true`). Error bodies are not echoed to avoid exposing submitted data or credentials. There are no automatic retries: callers can decide whether another billed inference request is appropriate, especially after HTTP 429.
+Timeouts, cancellation, authentication/network errors, non-2xx responses, and invalid responses become MCP tool errors (`isError: true`). Error bodies are not echoed to avoid exposing submitted data or credentials. There are no automatic retries: callers can decide whether to retry, especially after HTTP 429.
 
 ## Testing
 
@@ -312,7 +312,7 @@ Timeouts, cancellation, authentication/network errors, non-2xx responses, and in
 npm run check
 npm test          # offline schema, client, and MCP integration tests
 npm run build
-npm run test:live # opt-in: one billed call using configured Azure deployment
+npm run test:live # opt-in: one call using configured Azure deployment
 ```
 
 The Azure route and all three question/answer types were verified against an existing Microsoft-Decision-1 v1 deployment using Entra authentication. Latency varies; the wrapper makes no fixed speed guarantee.
