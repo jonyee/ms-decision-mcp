@@ -340,13 +340,34 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) for the commit 
 | `feat!: change the tool input` or a `BREAKING CHANGE:` footer | Minor release before 1.0; major release from 1.0 onward |
 | `docs: clarify setup` or `ci: update a workflow` | No release by itself; included with the next releasable change |
 
-After a push to `main`, **Release** runs [Release Please](https://github.com/googleapis/release-please) with the repository's built-in `GITHUB_TOKEN`. It opens or updates a release PR containing the changelog, package and lockfile versions, release manifest, MCP server version, and pinned README commands. The manifest starts at the already-published scoped version `0.1.0`; the bootstrap SHA excludes earlier publication history.
+#### Normal release
 
-Review the release PR and its checks, then merge it when ready to publish. Bot-created PR checks can require **Approve workflows to run** in GitHub's merge box. If checks have not started, manually run **CI** from the Actions tab using the release PR's branch. No personal access token is required.
+1. **Merge a releasable change into `main`.** Use the conventional commit messages above. The push starts **Release**, which runs [Release Please](https://github.com/googleapis/release-please) with the repository's built-in `GITHUB_TOKEN`.
+2. **Review the generated release PR.** Release Please opens or updates a PR containing the changelog, package and lockfile versions, release manifest, MCP server version, and pinned README commands. Confirm the proposed version and wait for CI. Bot-created PR checks can require **Approve workflows to run** in GitHub's merge box; if checks have not started, manually run **CI** from the Actions tab using the release PR's branch.
+3. **Merge the release PR when ready to publish.** This starts **Release** again. Release Please creates the `v<version>` tag and GitHub release; the publish job in that same run checks out the exact released SHA, validates the version, reruns the offline checks, and publishes to npm with provenance using OIDC trusted publishing. No npm token, personal access token, or per-release interactive 2FA prompt is needed.
+4. **Confirm publication, not just the GitHub release.** Check that the **publish** job succeeded rather than being skipped. Run `npm view @jonathanyee/ms-decision-mcp version --registry=https://registry.npmjs.org/` and verify it matches the release PR. Then run the pinned `npx` help command from [Setup](#setup) with the released version, from outside this repository so `npx` installs the registry package rather than resolving the same-named source checkout.
 
-Merging the release PR lets Release Please create the `v<version>` tag and GitHub release. A separate job in that **same workflow run** checks out the exact released SHA, validates the release version, reruns all offline checks, and publishes with provenance using npm OIDC trusted publishing. Publishing does not depend on a bot-created tag or release triggering another workflow. No npm token or per-release interactive 2FA prompt is needed.
+Publishing does not depend on a bot-created tag or release triggering another workflow. The manifest starts at the already-published scoped version `0.1.0`; the bootstrap SHA excludes earlier publication history. Do not manually bump the version files during the normal release process.
 
 If publication fails after the GitHub release is created, fix the external cause and choose **Re-run failed jobs** on that run so the publish job retains the original release outputs. Re-running the whole workflow normally finds no newly created release and skips publishing. npm versions are immutable: do not bump a version just to retry a failed publication.
+
+#### Requesting a release without a releasable change
+
+If only `ci:`, `docs:`, or other non-releasable changes have landed, Release Please intentionally does not open a release PR. Manually running **Release** again does not force a version bump or publication. A successful workflow run with a skipped publish job means no package was published.
+
+For an intentional one-off release, use a `Release-As:` footer instead of inventing a `fix:` or `feat:` change. Start with a clean checkout and replace **both** occurrences of `X.Y.Z` below with the intended unused version, greater than the latest published version:
+
+```sh
+git switch main
+git pull --ff-only origin main
+npm view @jonathanyee/ms-decision-mcp version --registry=https://registry.npmjs.org/
+git commit --allow-empty -m "chore: release X.Y.Z" -m "Release-As: X.Y.Z"
+git push origin main
+```
+
+Only use the direct-push example when repository rules permit it. If `main` requires pull requests, include `Release-As: X.Y.Z` in the final squash commit body of a reviewed PR instead; do not bypass branch protection. The footer must reach the commit body on `main`, not just a PR title or description.
+
+The push requests a release PR for that version; it does **not** bypass review or publish immediately. Follow the review, merge, and verification steps in [Normal release](#normal-release). If a workflow needs a manual recheck, use `gh workflow run release.yml --repo jonyee/ms-decision-mcp --ref main` or **Actions > Release > Run workflow**.
 
 ### One-time activation
 
@@ -362,7 +383,7 @@ Trusted publishing requires GitHub-hosted runners, Node.js 22.14+ and npm 11.5.1
 
 Prefer the automated release PR process above. The commands below are a fallback for an already reviewed release commit; do not manually bump versions during normal automated releases.
 
-From a release worktree with the intended version in `package.json` and `package-lock.json`:
+From a release worktree with the intended version in `package.json` and `package-lock.json`, run the following commands. Run the final `npx` verification from outside the repository:
 
 <!-- x-release-please-start-version -->
 ```sh
