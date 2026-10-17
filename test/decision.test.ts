@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { DecisionClient, loadConfig, type Config } from '../src/client.js';
 import { inputSchema, validateOutput, type DecisionInput } from '../src/schema.js';
 import { createServer } from '../src/server.js';
@@ -100,6 +101,8 @@ test('MCP lists typed tool and returns structured answers and tool errors', asyn
   await server.connect(serverTransport);
   await client.connect(clientTransport);
   try {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    assert.equal(client.getServerVersion()?.version, pkg.version);
     const { tools } = await client.listTools();
     assert.equal(tools.length, 1);
     assert.equal(tools[0]?.name, 'decide');

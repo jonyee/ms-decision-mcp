@@ -10,6 +10,7 @@ Requires Node.js 22+ and a Microsoft-Decision-1 deployment. If you are starting 
 
 Run the npm package without cloning or building the repository:
 
+<!-- x-release-please-start-version -->
 ```sh
 export AZURE_DECISION_ENDPOINT=https://your-resource.services.ai.azure.com
 export AZURE_DECISION_DEPLOYMENT=your-deployment-name
@@ -17,8 +18,9 @@ export AZURE_DECISION_AUTH=azure-cli
 az login
 npx --yes @jonathanyee/ms-decision-mcp@0.1.0
 ```
+<!-- x-release-please-end -->
 
-Use `npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading.
+Use `npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading. <!-- x-release-please-version -->
 
 If you previously used the unscoped `ms-decision-mcp` npm package, update your installation and MCP client configuration to `@jonathanyee/ms-decision-mcp`. Existing installations are not migrated automatically. The executable remains named `ms-decision-mcp`.
 
@@ -191,6 +193,7 @@ Keep API keys and client secrets in your environment or secret manager, never in
 
 To use the npm package, configure the client to launch `npx`:
 
+<!-- x-release-please-start-version -->
 ```json
 {
   "mcpServers": {
@@ -206,6 +209,7 @@ To use the npm package, configure the client to launch `npx`:
   }
 }
 ```
+<!-- x-release-please-end -->
 
 For a dedicated Azure CLI profile, add `AZURE_CONFIG_DIR` with its absolute path to `env`. The client needs `npx` and, for `azure-cli` authentication, `az` on its `PATH`.
 
@@ -323,8 +327,44 @@ The Azure route and all three question/answer types were verified against an exi
 
 Maintainers publish the public `@jonathanyee/ms-decision-mcp` package to the npm registry. The package includes compiled `dist/` files, this README, the MIT license, and the nonsecret `.env.example`; source, tests, and local configuration are excluded. `prepack` builds the executable automatically for both `npm pack` and `npm publish`.
 
+### Automated releases
+
+Ordinary pull requests run the read-only **CI** workflow on Node.js 22 and 24: type-checking, offline tests, a build, and a package dry run. Pull request code has no npm publishing credentials or OIDC permission. Protect `main` and require the `Validate (Node 22)` and `Validate (Node 24)` checks before merging.
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) for the commit messages that land on `main`. When squash-merging a pull request, use a conventional PR title as the squash commit message:
+
+| Commit | Release effect |
+| --- | --- |
+| `fix: handle an expired credential` | Patch release |
+| `feat: add a decision option` | Minor release |
+| `feat!: change the tool input` or a `BREAKING CHANGE:` footer | Minor release before 1.0; major release from 1.0 onward |
+| `docs: clarify setup` or `ci: update a workflow` | No release by itself; included with the next releasable change |
+
+After a push to `main`, **Release** runs [Release Please](https://github.com/googleapis/release-please) with the repository's built-in `GITHUB_TOKEN`. It opens or updates a release PR containing the changelog, package and lockfile versions, release manifest, MCP server version, and pinned README commands. The manifest starts at the already-published scoped version `0.1.0`; the bootstrap SHA excludes earlier publication history.
+
+Review the release PR and its checks, then merge it when ready to publish. Bot-created PR checks can require **Approve workflows to run** in GitHub's merge box. If checks have not started, manually run **CI** from the Actions tab using the release PR's branch. No personal access token is required.
+
+Merging the release PR lets Release Please create the `v<version>` tag and GitHub release. A separate job in that **same workflow run** checks out the exact released SHA, validates the release version, reruns all offline checks, and publishes with provenance using npm OIDC trusted publishing. Publishing does not depend on a bot-created tag or release triggering another workflow. No npm token or per-release interactive 2FA prompt is needed.
+
+If publication fails after the GitHub release is created, fix the external cause and choose **Re-run failed jobs** on that run so the publish job retains the original release outputs. Re-running the whole workflow normally finds no newly created release and skips publishing. npm versions are immutable: do not bump a version just to retry a failed publication.
+
+### One-time activation
+
+The workflow files must be committed and pushed to `main` before this automation can run. Complete these settings before merging the first release PR:
+
+1. In this repository's **Settings > Actions > General > Workflow permissions**, enable **Allow GitHub Actions to create and approve pull requests**. Keep the default workflow permission read-only; each job requests only its required permissions. The workflow creates release PRs but does not approve or merge them.
+2. Create a GitHub environment named **`npm`** under **Settings > Environments**. Restrict its deployment branches to `main`. Required reviewers are optional if an extra publication approval is desired.
+3. In the npm settings for **`@jonathanyee/ms-decision-mcp`**, add a [trusted publisher](https://docs.npmjs.com/trusted-publishers/) for **GitHub Actions** with organization/user **`jonyee`**, repository **`ms-decision-mcp`**, workflow filename **`release.yml`**, and environment **`npm`**. Explicitly enable **direct publishing with `npm publish`**; staging-only permission will not run this workflow. The GitHub owner is `jonyee`, not the npm scope `jonathanyee`.
+
+Trusted publishing requires GitHub-hosted runners, Node.js 22.14+ and npm 11.5.1+. The publishing job uses a GitHub-hosted Ubuntu runner with Node.js 24, OIDC permission only on that job, and no stored `NPM_TOKEN`.
+
+### Manual publication and recovery
+
+Prefer the automated release PR process above. The commands below are a fallback for an already reviewed release commit; do not manually bump versions during normal automated releases.
+
 From a release worktree with the intended version in `package.json` and `package-lock.json`:
 
+<!-- x-release-please-start-version -->
 ```sh
 npm ci
 npm run check
@@ -337,11 +377,13 @@ npm publish --access public --registry=https://registry.npmjs.org/
 npm view @jonathanyee/ms-decision-mcp version --registry=https://registry.npmjs.org/
 npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help
 ```
+<!-- x-release-please-end -->
 
 Review the dry-run file list before publishing and confirm `npm whoami` identifies the intended maintainer account with permission to publish in the `@jonathanyee` scope. If your default npm configuration belongs to another account, use a separate `--userconfig` file consistently for login, identity checks, and publication; do not reuse that account's tokens. Direct publication requires account two-factor authentication or a granular access token with bypass 2FA enabled; never commit npm tokens. See [npm's scoped public-package publishing guide](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
 Alternatively, use [staged publishing](https://docs.npmjs.com/staged-publishing/) with npm 11.15+ and Node.js 22.14+. This submits the package for validation and explicit 2FA approval instead of publishing it immediately:
 
+<!-- x-release-please-start-version -->
 ```sh
 npm pack
 npm stage publish ./jonathanyee-ms-decision-mcp-0.1.0.tgz --access public \
@@ -351,10 +393,11 @@ npm stage view <stage-id> --registry=https://registry.npmjs.org/
 # After the status becomes staged:
 npm stage approve <stage-id> --registry=https://registry.npmjs.org/
 ```
+<!-- x-release-please-end -->
 
 Replace `<stage-id>` with the ID returned by staging. You can also approve the version from the package page's **Staged Packages** tab on npmjs.com, completing the browser's 2FA prompt. Staging a new package publishes a public `0.0.0-stage` placeholder; the submitted version remains unavailable until approved. After approval, verify the released version and run the pinned `npx` help command above.
 
-For later releases, use `npm version patch --no-git-tag-version` (or the intended minor/major bump) before validation to update both version files, update the pinned installation examples, and commit the release changes. An npm name/version pair cannot be republished. Replace `0.1.0` in the final verification command with the version being released. Future CI publication can use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) after configuring the package's trusted publisher.
+An npm name/version pair cannot be republished. Use the version from the reviewed release commit for verification. Release Please maintains the versioned examples above; preserve their `x-release-please` annotations when editing the README.
 
 After the scoped package is published and its pinned `npx` help command succeeds, deprecate all versions of the old unscoped package:
 
