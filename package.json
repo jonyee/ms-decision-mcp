@@ -1,6 +1,6 @@
 {
   "name": "@jonathanyee/ms-decision-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A typed decision API for agents, powered by Microsoft-Decision-1 on Azure.",
   "license": "MIT",
   "repository": {
@@ -8,15 +8,29 @@
     "url": "git+https://github.com/jonyee/ms-decision-mcp.git"
   },
   "homepage": "https://github.com/jonyee/ms-decision-mcp#readme",
-  "bugs": { "url": "https://github.com/jonyee/ms-decision-mcp/issues" },
-  "keywords": ["mcp", "azure", "microsoft-decision", "agents"],
-  "files": ["dist", "README.md", "LICENSE", ".env.example"],
+  "bugs": {
+    "url": "https://github.com/jonyee/ms-decision-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "azure",
+    "microsoft-decision",
+    "agents"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    ".env.example"
+  ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "type": "module",
-  "bin": { "ms-decision-mcp": "dist/index.js" },
+  "bin": {
+    "ms-decision-mcp": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build",
@@ -26,7 +40,9 @@
     "test:live": "tsx scripts/smoke.ts",
     "check": "tsc --noEmit"
   },
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@azure/identity": "^4.13.0",
     "@modelcontextprotocol/sdk": "^1.25.0",
