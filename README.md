@@ -16,11 +16,11 @@ export AZURE_DECISION_ENDPOINT=https://your-resource.services.ai.azure.com
 export AZURE_DECISION_DEPLOYMENT=your-deployment-name
 export AZURE_DECISION_AUTH=azure-cli
 az login
-npx --yes @jonathanyee/ms-decision-mcp@0.1.0
+npx --yes @jonathanyee/ms-decision-mcp@0.1.1
 ```
 <!-- x-release-please-end -->
 
-Use `npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading. <!-- x-release-please-version -->
+Use `npx --yes @jonathanyee/ms-decision-mcp@0.1.1 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading. <!-- x-release-please-version -->
 
 If you previously used the unscoped `ms-decision-mcp` npm package, update your installation and MCP client configuration to `@jonathanyee/ms-decision-mcp`. Existing installations are not migrated automatically. The executable remains named `ms-decision-mcp`.
 
@@ -199,7 +199,7 @@ To use the npm package, configure the client to launch `npx`:
   "mcpServers": {
     "decision": {
       "command": "npx",
-      "args": ["--yes", "@jonathanyee/ms-decision-mcp@0.1.0"],
+      "args": ["--yes", "@jonathanyee/ms-decision-mcp@0.1.1"],
       "env": {
         "AZURE_DECISION_ENDPOINT": "https://your-resource.services.ai.azure.com",
         "AZURE_DECISION_DEPLOYMENT": "your-deployment-name",
@@ -375,7 +375,7 @@ npm login --registry=https://registry.npmjs.org/
 npm whoami --registry=https://registry.npmjs.org/
 npm publish --access public --registry=https://registry.npmjs.org/
 npm view @jonathanyee/ms-decision-mcp version --registry=https://registry.npmjs.org/
-npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help
+npx --yes @jonathanyee/ms-decision-mcp@0.1.1 --help
 ```
 <!-- x-release-please-end -->
 
@@ -386,7 +386,7 @@ Alternatively, use [staged publishing](https://docs.npmjs.com/staged-publishing/
 <!-- x-release-please-start-version -->
 ```sh
 npm pack
-npm stage publish ./jonathanyee-ms-decision-mcp-0.1.0.tgz --access public \
+npm stage publish ./jonathanyee-ms-decision-mcp-0.1.1.tgz --access public \
   --registry=https://registry.npmjs.org/
 npm stage list @jonathanyee/ms-decision-mcp --registry=https://registry.npmjs.org/
 npm stage view <stage-id> --registry=https://registry.npmjs.org/
