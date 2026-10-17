@@ -15,10 +15,12 @@ export AZURE_DECISION_ENDPOINT=https://your-resource.services.ai.azure.com
 export AZURE_DECISION_DEPLOYMENT=your-deployment-name
 export AZURE_DECISION_AUTH=azure-cli
 az login
-npx --yes ms-decision-mcp@0.1.0
+npx --yes @jonathanyee/ms-decision-mcp@0.1.0
 ```
 
-Use `npx --yes ms-decision-mcp@0.1.0 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading.
+Use `npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help` to view options without Azure configuration or an inference request. The version is pinned for reproducibility; update it deliberately when upgrading.
+
+If you previously used the unscoped `ms-decision-mcp` npm package, update your installation and MCP client configuration to `@jonathanyee/ms-decision-mcp`. Existing installations are not migrated automatically. The executable remains named `ms-decision-mcp`.
 
 For a source checkout, install dependencies and build before launching:
 
@@ -194,7 +196,7 @@ To use the npm package, configure the client to launch `npx`:
   "mcpServers": {
     "decision": {
       "command": "npx",
-      "args": ["--yes", "ms-decision-mcp@0.1.0"],
+      "args": ["--yes", "@jonathanyee/ms-decision-mcp@0.1.0"],
       "env": {
         "AZURE_DECISION_ENDPOINT": "https://your-resource.services.ai.azure.com",
         "AZURE_DECISION_DEPLOYMENT": "your-deployment-name",
@@ -319,7 +321,7 @@ The Azure route and all three question/answer types were verified against an exi
 
 ## Publishing
 
-Maintainers publish the public `ms-decision-mcp` package to the npm registry. The package includes compiled `dist/` files, this README, the MIT license, and the nonsecret `.env.example`; source, tests, and local configuration are excluded. `prepack` builds the executable automatically for both `npm pack` and `npm publish`.
+Maintainers publish the public `@jonathanyee/ms-decision-mcp` package to the npm registry. The package includes compiled `dist/` files, this README, the MIT license, and the nonsecret `.env.example`; source, tests, and local configuration are excluded. `prepack` builds the executable automatically for both `npm pack` and `npm publish`.
 
 From a release worktree with the intended version in `package.json` and `package-lock.json`:
 
@@ -332,19 +334,19 @@ npm pack --dry-run
 npm login --registry=https://registry.npmjs.org/
 npm whoami --registry=https://registry.npmjs.org/
 npm publish --access public --registry=https://registry.npmjs.org/
-npm view ms-decision-mcp version --registry=https://registry.npmjs.org/
-npx --yes ms-decision-mcp@0.1.0 --help
+npm view @jonathanyee/ms-decision-mcp version --registry=https://registry.npmjs.org/
+npx --yes @jonathanyee/ms-decision-mcp@0.1.0 --help
 ```
 
-Review the dry-run file list before publishing and confirm `npm whoami` identifies the intended maintainer account. If your default npm configuration belongs to another account, use a separate `--userconfig` file consistently for login, identity checks, and publication; do not reuse that account's tokens. Direct publication requires account two-factor authentication or a granular access token with bypass 2FA enabled; never commit npm tokens. See [npm's public-package publishing guide](https://docs.npmjs.com/creating-and-publishing-unscoped-public-packages/).
+Review the dry-run file list before publishing and confirm `npm whoami` identifies the intended maintainer account with permission to publish in the `@jonathanyee` scope. If your default npm configuration belongs to another account, use a separate `--userconfig` file consistently for login, identity checks, and publication; do not reuse that account's tokens. Direct publication requires account two-factor authentication or a granular access token with bypass 2FA enabled; never commit npm tokens. See [npm's scoped public-package publishing guide](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
 Alternatively, use [staged publishing](https://docs.npmjs.com/staged-publishing/) with npm 11.15+ and Node.js 22.14+. This submits the package for validation and explicit 2FA approval instead of publishing it immediately:
 
 ```sh
 npm pack
-npm stage publish ./ms-decision-mcp-0.1.0.tgz --access public \
+npm stage publish ./jonathanyee-ms-decision-mcp-0.1.0.tgz --access public \
   --registry=https://registry.npmjs.org/
-npm stage list ms-decision-mcp --registry=https://registry.npmjs.org/
+npm stage list @jonathanyee/ms-decision-mcp --registry=https://registry.npmjs.org/
 npm stage view <stage-id> --registry=https://registry.npmjs.org/
 # After the status becomes staged:
 npm stage approve <stage-id> --registry=https://registry.npmjs.org/
@@ -353,6 +355,16 @@ npm stage approve <stage-id> --registry=https://registry.npmjs.org/
 Replace `<stage-id>` with the ID returned by staging. You can also approve the version from the package page's **Staged Packages** tab on npmjs.com, completing the browser's 2FA prompt. Staging a new package publishes a public `0.0.0-stage` placeholder; the submitted version remains unavailable until approved. After approval, verify the released version and run the pinned `npx` help command above.
 
 For later releases, use `npm version patch --no-git-tag-version` (or the intended minor/major bump) before validation to update both version files, update the pinned installation examples, and commit the release changes. An npm name/version pair cannot be republished. Replace `0.1.0` in the final verification command with the version being released. Future CI publication can use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) after configuring the package's trusted publisher.
+
+After the scoped package is published and its pinned `npx` help command succeeds, deprecate all versions of the old unscoped package:
+
+```sh
+npm deprecate "ms-decision-mcp@*" \
+  "This package has moved to @jonathanyee/ms-decision-mcp. Please update your installation and MCP configuration." \
+  --registry=https://registry.npmjs.org/
+```
+
+Deprecation warns installers without removing old releases or automatically redirecting users. Do not deprecate the old package before verifying that the scoped replacement is available.
 
 ## API source
 

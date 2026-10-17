@@ -1,5 +1,5 @@
 {
-  "name": "ms-decision-mcp",
+  "name": "@jonathanyee/ms-decision-mcp",
   "version": "0.1.0",
   "description": "A typed decision API for agents, powered by Microsoft-Decision-1 on Azure.",
   "license": "MIT",
